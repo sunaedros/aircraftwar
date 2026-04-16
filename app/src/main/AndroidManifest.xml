@@ -16,6 +16,10 @@
             android:screenOrientation="portrait"
             android:exported="false" />
         <activity
+            android:name=".LeaderboardActivity"
+            android:screenOrientation="portrait"
+            android:exported="false" />
+        <activity
             android:name=".DifficultyActivity"
             android:screenOrientation="portrait"
             android:exported="true">

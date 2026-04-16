@@ -4,6 +4,9 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.view.MotionEvent;
@@ -33,6 +36,10 @@ import edu.hitsz.factory.MobEnemyFactory;
 
 public class GameSurfaceView extends SurfaceView implements SurfaceHolder.Callback, Runnable {
 
+    public static final int MSG_GAME_OVER = 1001;
+    public static final String KEY_SCORE = "key_score";
+    public static final String KEY_DIFFICULTY = "key_difficulty";
+
     private static final long FRAME_DELAY_MS = 16L;
     private static final int TIME_INTERVAL = 20;
     private static final int HERO_RESPAWN_HP = 100;
@@ -48,6 +55,7 @@ public class GameSurfaceView extends SurfaceView implements SurfaceHolder.Callba
     private final Rect backgroundDestRect = new Rect();
     private final Rect backgroundDestRect2 = new Rect();
     private final GameDifficulty difficulty;
+    private final Handler gameEventHandler;
 
     private final List<AbstractAircraft> enemyAircrafts = new LinkedList<>();
     private final List<BaseBullet> heroBullets = new LinkedList<>();
@@ -62,6 +70,7 @@ public class GameSurfaceView extends SurfaceView implements SurfaceHolder.Callba
     private int cycleTime = 0;
     private int score = 0;
     private int nextBossScore = BOSS_SCORE_THRESHOLD;
+    private boolean gameOverDispatched = false;
     private float density;
     private int statusBarInsetTop;
     private float hudPadding;
@@ -70,9 +79,10 @@ public class GameSurfaceView extends SurfaceView implements SurfaceHolder.Callba
     private float hudSecondLineBaseline;
     private float hudPanelBottom;
 
-    public GameSurfaceView(Context context, GameDifficulty difficulty) {
+    public GameSurfaceView(Context context, GameDifficulty difficulty, Handler gameEventHandler) {
         super(context);
         this.difficulty = difficulty;
+        this.gameEventHandler = gameEventHandler;
         ImageManager.initialize(context);
         surfaceHolder = getHolder();
         surfaceHolder.addCallback(this);
@@ -187,6 +197,7 @@ public class GameSurfaceView extends SurfaceView implements SurfaceHolder.Callba
         score = 0;
         backgroundTop = 0;
         nextBossScore = BOSS_SCORE_THRESHOLD;
+        gameOverDispatched = false;
 
         heroAircraft = HeroAircraft.getHeroAircraft();
         heroAircraft.revive();
@@ -212,8 +223,7 @@ public class GameSurfaceView extends SurfaceView implements SurfaceHolder.Callba
         crashCheckAction();
         postProcessAction();
         if (heroAircraft.getHp() <= 0) {
-            MusicManager.playOverBgm();
-            initializeGameState();
+            handleGameOver();
             return;
         }
         syncBackgroundMusic();
@@ -412,6 +422,27 @@ public class GameSurfaceView extends SurfaceView implements SurfaceHolder.Callba
         } else {
             MusicManager.playBgm();
         }
+    }
+
+    private void handleGameOver() {
+        if (gameOverDispatched) {
+            return;
+        }
+        gameOverDispatched = true;
+        running = false;
+        MusicManager.overBgm();
+        MusicManager.overBossBgm();
+        MusicManager.playOverBgm();
+        if (gameEventHandler == null) {
+            return;
+        }
+        Message message = Message.obtain();
+        message.what = MSG_GAME_OVER;
+        Bundle bundle = new Bundle();
+        bundle.putInt(KEY_SCORE, score);
+        bundle.putInt(KEY_DIFFICULTY, difficulty.getValue());
+        message.setData(bundle);
+        gameEventHandler.sendMessage(message);
     }
 
     private static int randomInt(int minInclusive, int maxExclusive) {

@@ -6,4 +6,14 @@
     <string name="difficulty_normal">Normal</string>
     <string name="difficulty_hard">Hard</string>
     <string name="music_switch_label">Audio</string>
+    <string name="leaderboard_title">%1$s Leaderboard</string>
+    <string name="leaderboard_subtitle">Scores are stored locally in SQLite. Tap Delete to remove one record.</string>
+    <string name="leaderboard_empty">No records yet. Finish a game to create the first score.</string>
+    <string name="leaderboard_back">Back To Difficulty Page</string>
+    <string name="leaderboard_delete">Delete</string>
+    <string name="leaderboard_dialog_title">Save Your Score</string>
+    <string name="leaderboard_dialog_message">Game over. Your score is %1$d. Enter a player name to save this record.</string>
+    <string name="leaderboard_name_hint">Player name</string>
+    <string name="leaderboard_default_name">Player</string>
+    <string name="leaderboard_save">Save</string>
 </resources>

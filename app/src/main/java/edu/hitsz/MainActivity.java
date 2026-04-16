@@ -1,6 +1,10 @@
 package edu.hitsz;
 
+import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
 import android.widget.FrameLayout;
 
 import androidx.activity.OnBackPressedCallback;
@@ -15,6 +19,8 @@ import edu.hitsz.game.GameSurfaceView;
 public class MainActivity extends AppCompatActivity {
 
     private GameSurfaceView gameSurfaceView;
+    private boolean leaderboardOpened = false;
+    private final Handler gameEventHandler = new Handler(Looper.getMainLooper(), this::handleGameEvent);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -24,7 +30,7 @@ public class MainActivity extends AppCompatActivity {
                 getIntent().getIntExtra(GameDifficulty.EXTRA_KEY, GameDifficulty.NORMAL.getValue())
         );
         MusicManager.initialize(getApplicationContext());
-        gameSurfaceView = new GameSurfaceView(this, difficulty);
+        gameSurfaceView = new GameSurfaceView(this, difficulty, gameEventHandler);
         FrameLayout gameContainer = findViewById(R.id.game_container);
         gameContainer.addView(gameSurfaceView);
         MaterialSwitch musicSwitch = findViewById(R.id.music_switch);
@@ -63,5 +69,19 @@ public class MainActivity extends AppCompatActivity {
         if (isFinishing()) {
             MusicManager.release();
         }
+    }
+
+    private boolean handleGameEvent(Message message) {
+        if (message.what != GameSurfaceView.MSG_GAME_OVER || leaderboardOpened) {
+            return false;
+        }
+        leaderboardOpened = true;
+        Intent intent = new Intent(this, LeaderboardActivity.class);
+        intent.putExtra(LeaderboardActivity.EXTRA_SCORE, message.getData().getInt(GameSurfaceView.KEY_SCORE));
+        intent.putExtra(LeaderboardActivity.EXTRA_DIFFICULTY,
+                message.getData().getInt(GameSurfaceView.KEY_DIFFICULTY));
+        startActivity(intent);
+        finish();
+        return true;
     }
 }
