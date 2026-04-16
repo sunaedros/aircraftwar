@@ -9,24 +9,41 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <com.google.android.material.materialswitch.MaterialSwitch
-        android:id="@+id/music_switch"
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="top|end"
-        android:layout_marginTop="48dp"
+        android:layout_gravity="bottom|end"
+        android:layout_marginBottom="28dp"
         android:layout_marginEnd="16dp"
-        android:background="#990C1220"
-        android:checked="true"
-        android:minHeight="48dp"
+        android:background="@drawable/bg_audio_chip"
+        android:elevation="10dp"
+        android:gravity="center_vertical"
+        android:minHeight="52dp"
+        android:orientation="horizontal"
         android:paddingStart="12dp"
         android:paddingTop="8dp"
-        android:paddingEnd="12dp"
-        android:paddingBottom="8dp"
-        android:text="@string/music_switch_label"
-        android:textColor="#FFFFFF"
-        android:textSize="14sp"
-        app:thumbIconTint="@android:color/white"
-        app:trackTint="#7BC67B" />
+        android:paddingEnd="10dp"
+        android:paddingBottom="8dp">
 
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:fontFamily="sans-serif"
+            android:text="@string/music_switch_label"
+            android:textColor="#F7FBFF"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/music_switch"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checked="true"
+            android:minHeight="40dp"
+            android:showText="false"
+            app:thumbTint="#FFFFFF"
+            app:trackTint="#7BC67B" />
+
+    </LinearLayout>
 </FrameLayout>
