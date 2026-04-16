@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">AircraftWar</string>
+    <string name="difficulty_title">Choose Your Mission</string>
+    <string name="difficulty_subtitle">Select a difficulty and enter the matching Android game scene.</string>
+    <string name="difficulty_easy">Easy</string>
+    <string name="difficulty_normal">Normal</string>
+    <string name="difficulty_hard">Hard</string>
 </resources>

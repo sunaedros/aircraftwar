@@ -32,8 +32,6 @@ public class GameSurfaceView extends SurfaceView implements SurfaceHolder.Callba
 
     private static final long FRAME_DELAY_MS = 16L;
     private static final int TIME_INTERVAL = 20;
-    private static final int CYCLE_DURATION = 600;
-    private static final int ENEMY_MAX_NUMBER = 5;
     private static final int HERO_RESPAWN_HP = 100;
     private static final float HUD_TEXT_SIZE_SP = 24f;
     private static final float HUD_PADDING_DP = 16f;
@@ -44,6 +42,7 @@ public class GameSurfaceView extends SurfaceView implements SurfaceHolder.Callba
     private final Paint overlayPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Rect backgroundDestRect = new Rect();
     private final Rect backgroundDestRect2 = new Rect();
+    private final GameDifficulty difficulty;
 
     private final List<AbstractAircraft> enemyAircrafts = new LinkedList<>();
     private final List<BaseBullet> heroBullets = new LinkedList<>();
@@ -65,8 +64,9 @@ public class GameSurfaceView extends SurfaceView implements SurfaceHolder.Callba
     private float hudSecondLineBaseline;
     private float hudPanelBottom;
 
-    public GameSurfaceView(Context context) {
+    public GameSurfaceView(Context context, GameDifficulty difficulty) {
         super(context);
+        this.difficulty = difficulty;
         ImageManager.initialize(context);
         surfaceHolder = getHolder();
         surfaceHolder.addCallback(this);
@@ -210,21 +210,22 @@ public class GameSurfaceView extends SurfaceView implements SurfaceHolder.Callba
 
     private boolean timeCountAndNewCycleJudge() {
         cycleTime += TIME_INTERVAL;
-        if (cycleTime >= CYCLE_DURATION) {
-            cycleTime %= CYCLE_DURATION;
+        if (cycleTime >= difficulty.getCycleDuration()) {
+            cycleTime %= difficulty.getCycleDuration();
             return true;
         }
         return false;
     }
 
     private void createEnemies() {
-        while (enemyAircrafts.size() < ENEMY_MAX_NUMBER) {
-            AircraftFactory factory = Math.random() < 0.35 ? new EliteEnemyFactory() : new MobEnemyFactory();
+        while (enemyAircrafts.size() < difficulty.getEnemyMaxNumber()) {
+            AircraftFactory factory = Math.random() < difficulty.getEliteProbability()
+                    ? new EliteEnemyFactory() : new MobEnemyFactory();
             int x = randomInt(80, Math.max(81, Main.WINDOW_WIDTH - 80));
             int y = randomInt(60, Math.max(61, Main.WINDOW_HEIGHT / 6));
             int speedX = randomInt(-3, 4);
-            int speedY = randomInt(8, 14);
-            int hp = factory instanceof EliteEnemyFactory ? 90 : 30;
+            int speedY = randomInt(difficulty.getMinEnemySpeed(), difficulty.getMaxEnemySpeed() + 1);
+            int hp = factory instanceof EliteEnemyFactory ? difficulty.getEliteEnemyHp() : difficulty.getMobEnemyHp();
             enemyAircrafts.add(factory.createAircraft(x, y, speedX, speedY, hp));
         }
     }
@@ -361,7 +362,8 @@ public class GameSurfaceView extends SurfaceView implements SurfaceHolder.Callba
 
     private void drawHud(Canvas canvas) {
         canvas.drawRect(0, 0, Main.WINDOW_WIDTH, hudPanelBottom, overlayPaint);
-        canvas.drawText("Score: " + score, hudPadding, hudTextBaseline, hudPaint);
+        canvas.drawText("Mode: " + difficulty.getLabel(), hudPadding, hudTextBaseline, hudPaint);
+        canvas.drawText("Score: " + score, hudPadding + dpToPx(180), hudTextBaseline, hudPaint);
         canvas.drawText("HP: " + heroAircraft.getHp(), hudPadding, hudSecondLineBaseline, hudPaint);
     }
 

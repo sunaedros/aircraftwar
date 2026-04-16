@@ -5,6 +5,7 @@ import android.os.Bundle;
 import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
 
+import edu.hitsz.game.GameDifficulty;
 import edu.hitsz.game.GameSurfaceView;
 
 public class MainActivity extends AppCompatActivity {
@@ -14,7 +15,10 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        gameSurfaceView = new GameSurfaceView(this);
+        GameDifficulty difficulty = GameDifficulty.fromValue(
+                getIntent().getIntExtra(GameDifficulty.EXTRA_KEY, GameDifficulty.NORMAL.getValue())
+        );
+        gameSurfaceView = new GameSurfaceView(this, difficulty);
         setContentView(gameSurfaceView);
 
         if (getSupportActionBar() != null) {
