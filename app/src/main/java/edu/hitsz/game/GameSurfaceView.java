@@ -5,6 +5,7 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Rect;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
@@ -34,10 +35,15 @@ public class GameSurfaceView extends SurfaceView implements SurfaceHolder.Callba
     private static final int CYCLE_DURATION = 600;
     private static final int ENEMY_MAX_NUMBER = 5;
     private static final int HERO_RESPAWN_HP = 1000;
+    private static final float HUD_TEXT_SIZE_SP = 24f;
+    private static final float HUD_PADDING_DP = 16f;
+    private static final float HUD_LINE_GAP_DP = 8f;
 
     private final SurfaceHolder surfaceHolder;
     private final Paint hudPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint overlayPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Rect backgroundDestRect = new Rect();
+    private final Rect backgroundDestRect2 = new Rect();
 
     private final List<AbstractAircraft> enemyAircrafts = new LinkedList<>();
     private final List<BaseBullet> heroBullets = new LinkedList<>();
@@ -51,6 +57,13 @@ public class GameSurfaceView extends SurfaceView implements SurfaceHolder.Callba
     private int backgroundTop = 0;
     private int cycleTime = 0;
     private int score = 0;
+    private float density;
+    private int statusBarInsetTop;
+    private float hudPadding;
+    private float hudLineGap;
+    private float hudTextBaseline;
+    private float hudSecondLineBaseline;
+    private float hudPanelBottom;
 
     public GameSurfaceView(Context context) {
         super(context);
@@ -59,10 +72,16 @@ public class GameSurfaceView extends SurfaceView implements SurfaceHolder.Callba
         surfaceHolder.addCallback(this);
         setFocusable(true);
         setKeepScreenOn(true);
+        density = getResources().getDisplayMetrics().density;
+        statusBarInsetTop = resolveStatusBarInsetTop();
+        hudPadding = dpToPx(HUD_PADDING_DP);
+        hudLineGap = dpToPx(HUD_LINE_GAP_DP);
 
         hudPaint.setColor(Color.WHITE);
-        hudPaint.setTextSize(42f);
+        hudPaint.setTextSize(spToPx(HUD_TEXT_SIZE_SP));
+        hudPaint.setFakeBoldText(true);
         overlayPaint.setColor(Color.argb(110, 0, 0, 0));
+        updateHudMetrics();
     }
 
     @Override
@@ -93,6 +112,7 @@ public class GameSurfaceView extends SurfaceView implements SurfaceHolder.Callba
     public void surfaceChanged(@NonNull SurfaceHolder holder, int format, int width, int height) {
         Main.WINDOW_WIDTH = width;
         Main.WINDOW_HEIGHT = height;
+        updateHudMetrics();
         initializeGameState();
     }
 
@@ -318,11 +338,11 @@ public class GameSurfaceView extends SurfaceView implements SurfaceHolder.Callba
             canvas.drawColor(Color.BLACK);
             return;
         }
-        canvas.drawBitmap(background, null,
-                new android.graphics.Rect(0, -backgroundTop, Main.WINDOW_WIDTH, Main.WINDOW_HEIGHT - backgroundTop), null);
-        canvas.drawBitmap(background, null,
-                new android.graphics.Rect(0, Main.WINDOW_HEIGHT - backgroundTop, Main.WINDOW_WIDTH,
-                        Main.WINDOW_HEIGHT * 2 - backgroundTop), null);
+        backgroundDestRect.set(0, -backgroundTop, Main.WINDOW_WIDTH, Main.WINDOW_HEIGHT - backgroundTop);
+        backgroundDestRect2.set(0, Main.WINDOW_HEIGHT - backgroundTop, Main.WINDOW_WIDTH,
+                Main.WINDOW_HEIGHT * 2 - backgroundTop);
+        canvas.drawBitmap(background, null, backgroundDestRect, null);
+        canvas.drawBitmap(background, null, backgroundDestRect2, null);
     }
 
     private void drawFlyingObject(Canvas canvas, AbstractFlyingObject flyingObject) {
@@ -339,9 +359,9 @@ public class GameSurfaceView extends SurfaceView implements SurfaceHolder.Callba
     }
 
     private void drawHud(Canvas canvas) {
-        canvas.drawRect(0, 0, Main.WINDOW_WIDTH, 120, overlayPaint);
-        canvas.drawText("Score: " + score, 32, 52, hudPaint);
-        canvas.drawText("HP: " + heroAircraft.getHp(), 32, 102, hudPaint);
+        canvas.drawRect(0, 0, Main.WINDOW_WIDTH, hudPanelBottom, overlayPaint);
+        canvas.drawText("Score: " + score, hudPadding, hudTextBaseline, hudPaint);
+        canvas.drawText("HP: " + heroAircraft.getHp(), hudPadding, hudSecondLineBaseline, hudPaint);
     }
 
     private static int randomInt(int minInclusive, int maxExclusive) {
@@ -350,5 +370,29 @@ public class GameSurfaceView extends SurfaceView implements SurfaceHolder.Callba
 
     private static float clamp(float value, float min, float max) {
         return Math.max(min, Math.min(max, value));
+    }
+
+    private void updateHudMetrics() {
+        Paint.FontMetrics fontMetrics = hudPaint.getFontMetrics();
+        float textHeight = fontMetrics.bottom - fontMetrics.top;
+        hudTextBaseline = statusBarInsetTop + hudPadding - fontMetrics.top;
+        hudSecondLineBaseline = hudTextBaseline + textHeight + hudLineGap;
+        hudPanelBottom = hudSecondLineBaseline + fontMetrics.bottom + hudPadding;
+    }
+
+    private int resolveStatusBarInsetTop() {
+        int resourceId = getResources().getIdentifier("status_bar_height", "dimen", "android");
+        if (resourceId == 0) {
+            return Math.round(24 * density);
+        }
+        return getResources().getDimensionPixelSize(resourceId);
+    }
+
+    private float dpToPx(float dp) {
+        return dp * density;
+    }
+
+    private float spToPx(float sp) {
+        return sp * getResources().getDisplayMetrics().scaledDensity;
     }
 }

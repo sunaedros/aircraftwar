@@ -22,6 +22,7 @@ import edu.hitsz.prop.SuperBulletProp;
 
 public final class ImageManager {
 
+    private static final float ENTITY_SCALE = 2.0f;
     private static final Map<String, Bitmap> CLASSNAME_IMAGE_MAP = new HashMap<>();
 
     public static Bitmap BACKGROUND_IMAGE;
@@ -47,17 +48,17 @@ public final class ImageManager {
             return;
         }
         BACKGROUND_IMAGE = BitmapFactory.decodeResource(context.getResources(), R.drawable.bg);
-        HERO_IMAGE = BitmapFactory.decodeResource(context.getResources(), R.drawable.hero);
-        HERO_BULLET_IMAGE = BitmapFactory.decodeResource(context.getResources(), R.drawable.bullet_hero);
-        ENEMY_BULLET_IMAGE = BitmapFactory.decodeResource(context.getResources(), R.drawable.bullet_enemy);
-        MOB_ENEMY_IMAGE = BitmapFactory.decodeResource(context.getResources(), R.drawable.mob);
-        ELITE_ENEMY_IMAGE = BitmapFactory.decodeResource(context.getResources(), R.drawable.elite);
-        ELITEPLUS_ENEMY_IMAGE = BitmapFactory.decodeResource(context.getResources(), R.drawable.elite_plus);
-        BOSS_ENEMY_IMAGE = BitmapFactory.decodeResource(context.getResources(), R.drawable.boss);
-        PROP_BLOOD_IMAGE = BitmapFactory.decodeResource(context.getResources(), R.drawable.prop_blood);
-        PROP_BOMB_IMAGE = BitmapFactory.decodeResource(context.getResources(), R.drawable.prop_bomb);
-        PROP_BULLET_IMAGE = BitmapFactory.decodeResource(context.getResources(), R.drawable.prop_bullet);
-        PROP_BULLETPLUS_IMAGE = BitmapFactory.decodeResource(context.getResources(), R.drawable.prop_bullet_plus);
+        HERO_IMAGE = loadScaledBitmap(context, R.drawable.hero);
+        HERO_BULLET_IMAGE = loadScaledBitmap(context, R.drawable.bullet_hero);
+        ENEMY_BULLET_IMAGE = loadScaledBitmap(context, R.drawable.bullet_enemy);
+        MOB_ENEMY_IMAGE = loadScaledBitmap(context, R.drawable.mob);
+        ELITE_ENEMY_IMAGE = loadScaledBitmap(context, R.drawable.elite);
+        ELITEPLUS_ENEMY_IMAGE = loadScaledBitmap(context, R.drawable.elite_plus);
+        BOSS_ENEMY_IMAGE = loadScaledBitmap(context, R.drawable.boss);
+        PROP_BLOOD_IMAGE = loadScaledBitmap(context, R.drawable.prop_blood);
+        PROP_BOMB_IMAGE = loadScaledBitmap(context, R.drawable.prop_bomb);
+        PROP_BULLET_IMAGE = loadScaledBitmap(context, R.drawable.prop_bullet);
+        PROP_BULLETPLUS_IMAGE = loadScaledBitmap(context, R.drawable.prop_bullet_plus);
 
         CLASSNAME_IMAGE_MAP.put(HeroAircraft.class.getName(), HERO_IMAGE);
         CLASSNAME_IMAGE_MAP.put(MobEnemy.class.getName(), MOB_ENEMY_IMAGE);
@@ -82,5 +83,12 @@ public final class ImageManager {
             return null;
         }
         return get(obj.getClass().getName());
+    }
+
+    private static Bitmap loadScaledBitmap(Context context, int drawableResId) {
+        Bitmap bitmap = BitmapFactory.decodeResource(context.getResources(), drawableResId);
+        int scaledWidth = Math.max(1, Math.round(bitmap.getWidth() * ENTITY_SCALE));
+        int scaledHeight = Math.max(1, Math.round(bitmap.getHeight() * ENTITY_SCALE));
+        return Bitmap.createScaledBitmap(bitmap, scaledWidth, scaledHeight, true);
     }
 }
