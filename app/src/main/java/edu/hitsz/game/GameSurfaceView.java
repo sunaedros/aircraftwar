@@ -17,14 +17,17 @@ import java.util.LinkedList;
 import java.util.List;
 
 import edu.hitsz.aircraft.AbstractAircraft;
+import edu.hitsz.aircraft.BossEnemy;
 import edu.hitsz.aircraft.EliteEnemy;
 import edu.hitsz.aircraft.HeroAircraft;
 import edu.hitsz.bullet.BaseBullet;
 import edu.hitsz.bullet.EnemyBullet;
+import edu.hitsz.application.music.MusicManager;
 import edu.hitsz.basic.AbstractFlyingObject;
 import edu.hitsz.application.ImageManager;
 import edu.hitsz.application.Main;
 import edu.hitsz.factory.AircraftFactory;
+import edu.hitsz.factory.BossEnemyFactory;
 import edu.hitsz.factory.EliteEnemyFactory;
 import edu.hitsz.factory.MobEnemyFactory;
 
@@ -33,6 +36,8 @@ public class GameSurfaceView extends SurfaceView implements SurfaceHolder.Callba
     private static final long FRAME_DELAY_MS = 16L;
     private static final int TIME_INTERVAL = 20;
     private static final int HERO_RESPAWN_HP = 100;
+    private static final int BOSS_SCORE_THRESHOLD = 120;
+    private static final int BOSS_HP = 360;
     private static final float HUD_TEXT_SIZE_SP = 24f;
     private static final float HUD_PADDING_DP = 16f;
     private static final float HUD_LINE_GAP_DP = 8f;
@@ -56,6 +61,7 @@ public class GameSurfaceView extends SurfaceView implements SurfaceHolder.Callba
     private int backgroundTop = 0;
     private int cycleTime = 0;
     private int score = 0;
+    private int nextBossScore = BOSS_SCORE_THRESHOLD;
     private float density;
     private int statusBarInsetTop;
     private float hudPadding;
@@ -180,6 +186,7 @@ public class GameSurfaceView extends SurfaceView implements SurfaceHolder.Callba
         cycleTime = 0;
         score = 0;
         backgroundTop = 0;
+        nextBossScore = BOSS_SCORE_THRESHOLD;
 
         heroAircraft = HeroAircraft.getHeroAircraft();
         heroAircraft.revive();
@@ -188,6 +195,7 @@ public class GameSurfaceView extends SurfaceView implements SurfaceHolder.Callba
         if (heal > 0) {
             heroAircraft.decreaseHp(-heal);
         }
+        MusicManager.playBgm();
     }
 
     private void updateGame() {
@@ -204,8 +212,11 @@ public class GameSurfaceView extends SurfaceView implements SurfaceHolder.Callba
         crashCheckAction();
         postProcessAction();
         if (heroAircraft.getHp() <= 0) {
+            MusicManager.playOverBgm();
             initializeGameState();
+            return;
         }
+        syncBackgroundMusic();
     }
 
     private boolean timeCountAndNewCycleJudge() {
@@ -218,6 +229,10 @@ public class GameSurfaceView extends SurfaceView implements SurfaceHolder.Callba
     }
 
     private void createEnemies() {
+        if (score >= nextBossScore && !hasBossEnemy()) {
+            spawnBossEnemy();
+            nextBossScore += BOSS_SCORE_THRESHOLD;
+        }
         while (enemyAircrafts.size() < difficulty.getEnemyMaxNumber()) {
             AircraftFactory factory = Math.random() < difficulty.getEliteProbability()
                     ? new EliteEnemyFactory() : new MobEnemyFactory();
@@ -232,9 +247,10 @@ public class GameSurfaceView extends SurfaceView implements SurfaceHolder.Callba
 
     private void shootAction() {
         heroBullets.addAll(heroAircraft.shoot());
+        MusicManager.playBullet();
         for (AbstractAircraft enemyAircraft : enemyAircrafts) {
             heroBullets.removeIf(BaseBullet::notValid);
-            if (enemyAircraft instanceof EliteEnemy || Math.random() < 0.15) {
+            if (enemyAircraft instanceof BossEnemy || enemyAircraft instanceof EliteEnemy || Math.random() < 0.15) {
                 enemyBullets.addAll(enemyAircraft.shoot());
             }
         }
@@ -269,6 +285,7 @@ public class GameSurfaceView extends SurfaceView implements SurfaceHolder.Callba
                     heroBullet.vanish();
                     if (enemyAircraft.notValid()) {
                         score += 10;
+                        MusicManager.playHitEnemyPlayer();
                     }
                     break;
                 }
@@ -292,6 +309,7 @@ public class GameSurfaceView extends SurfaceView implements SurfaceHolder.Callba
             if (heroAircraft.crash(enemyAircraft)) {
                 heroAircraft.decreaseHp(80);
                 enemyAircraft.vanish();
+                MusicManager.playHitEnemyPlayer();
             }
         }
     }
@@ -365,6 +383,35 @@ public class GameSurfaceView extends SurfaceView implements SurfaceHolder.Callba
         canvas.drawText("Mode: " + difficulty.getLabel(), hudPadding, hudTextBaseline, hudPaint);
         canvas.drawText("Score: " + score, hudPadding + dpToPx(180), hudTextBaseline, hudPaint);
         canvas.drawText("HP: " + heroAircraft.getHp(), hudPadding, hudSecondLineBaseline, hudPaint);
+    }
+
+    private void spawnBossEnemy() {
+        AircraftFactory bossFactory = new BossEnemyFactory();
+        enemyAircrafts.add(bossFactory.createAircraft(
+                Main.WINDOW_WIDTH / 2,
+                Math.max(120, Main.WINDOW_HEIGHT / 10),
+                5,
+                4,
+                BOSS_HP
+        ));
+        MusicManager.playBossBgm();
+    }
+
+    private boolean hasBossEnemy() {
+        for (AbstractAircraft enemyAircraft : enemyAircrafts) {
+            if (!enemyAircraft.notValid() && enemyAircraft instanceof BossEnemy) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void syncBackgroundMusic() {
+        if (hasBossEnemy()) {
+            MusicManager.playBossBgm();
+        } else {
+            MusicManager.playBgm();
+        }
     }
 
     private static int randomInt(int minInclusive, int maxExclusive) {
