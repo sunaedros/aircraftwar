@@ -171,4 +171,8 @@ public abstract class AbstractFlyingObject {
         isValid = false;
     }
 
+    public void revive() {
+        isValid = true;
+    }
+
 }

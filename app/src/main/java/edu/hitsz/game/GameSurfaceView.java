@@ -182,6 +182,7 @@ public class GameSurfaceView extends SurfaceView implements SurfaceHolder.Callba
         backgroundTop = 0;
 
         heroAircraft = HeroAircraft.getHeroAircraft();
+        heroAircraft.revive();
         heroAircraft.setLocation(Main.WINDOW_WIDTH / 2f, Main.WINDOW_HEIGHT * 0.82f);
         int heal = HERO_RESPAWN_HP - heroAircraft.getHp();
         if (heal > 0) {
