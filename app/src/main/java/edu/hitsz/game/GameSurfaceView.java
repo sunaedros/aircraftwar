@@ -34,7 +34,7 @@ public class GameSurfaceView extends SurfaceView implements SurfaceHolder.Callba
     private static final int TIME_INTERVAL = 20;
     private static final int CYCLE_DURATION = 600;
     private static final int ENEMY_MAX_NUMBER = 5;
-    private static final int HERO_RESPAWN_HP = 1000;
+    private static final int HERO_RESPAWN_HP = 100;
     private static final float HUD_TEXT_SIZE_SP = 24f;
     private static final float HUD_PADDING_DP = 16f;
     private static final float HUD_LINE_GAP_DP = 8f;
