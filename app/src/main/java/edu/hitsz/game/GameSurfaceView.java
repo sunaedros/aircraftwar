@@ -58,6 +58,7 @@ public class GameSurfaceView extends SurfaceView implements SurfaceHolder.Callba
         surfaceHolder = getHolder();
         surfaceHolder.addCallback(this);
         setFocusable(true);
+        setKeepScreenOn(true);
 
         hudPaint.setColor(Color.WHITE);
         hudPaint.setTextSize(42f);
