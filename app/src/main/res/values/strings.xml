@@ -5,6 +5,7 @@
     <string name="difficulty_easy">Easy</string>
     <string name="difficulty_normal">Normal</string>
     <string name="difficulty_hard">Hard</string>
+    <string name="difficulty_online">Online Battle</string>
     <string name="music_switch_label">Audio</string>
     <string name="leaderboard_title">%1$s Leaderboard</string>
     <string name="leaderboard_subtitle">Scores are stored locally in SQLite. Tap Delete to remove one record.</string>
@@ -16,4 +17,12 @@
     <string name="leaderboard_name_hint">Player name</string>
     <string name="leaderboard_default_name">Player</string>
     <string name="leaderboard_save">Save</string>
+    <string name="online_title">Online Battle</string>
+    <string name="online_subtitle">Connect two Android clients through the Socket server and sync scores in real time.</string>
+    <string name="online_name_hint">Player name</string>
+    <string name="online_host_hint">Server host</string>
+    <string name="online_port_hint">Server port</string>
+    <string name="online_start">Connect And Start</string>
+    <string name="online_result_title">Battle Result</string>
+    <string name="online_result_back">Back To Mission Page</string>
 </resources>
