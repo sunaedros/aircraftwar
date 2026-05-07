@@ -78,9 +78,21 @@
             android:id="@+id/button_hard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
             android:backgroundTint="#B71C1C"
             android:minHeight="72dp"
             android:text="@string/difficulty_hard"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="22sp" />
+
+        <Button
+            android:id="@+id/button_online"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:backgroundTint="#D9822B"
+            android:minHeight="72dp"
+            android:text="@string/difficulty_online"
             android:textAllCaps="false"
             android:textColor="#FFFFFF"
             android:textSize="22sp" />

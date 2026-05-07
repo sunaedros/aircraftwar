@@ -36,6 +36,12 @@ import edu.hitsz.factory.MobEnemyFactory;
 
 public class GameSurfaceView extends SurfaceView implements SurfaceHolder.Callback, Runnable {
 
+    public interface OnlineScoreObserver {
+        void onScoreChanged(int score);
+
+        void onHeroDead(int finalScore);
+    }
+
     public static final int MSG_GAME_OVER = 1001;
     public static final String KEY_SCORE = "key_score";
     public static final String KEY_DIFFICULTY = "key_difficulty";
@@ -48,7 +54,6 @@ public class GameSurfaceView extends SurfaceView implements SurfaceHolder.Callba
     private static final float HUD_TEXT_SIZE_SP = 24f;
     private static final float HUD_PADDING_DP = 16f;
     private static final float HUD_LINE_GAP_DP = 8f;
-
     private final SurfaceHolder surfaceHolder;
     private final Paint hudPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint overlayPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -68,7 +73,7 @@ public class GameSurfaceView extends SurfaceView implements SurfaceHolder.Callba
     private HeroAircraft heroAircraft;
     private int backgroundTop = 0;
     private int cycleTime = 0;
-    private int score = 0;
+    private volatile int score = 0;
     private int nextBossScore = BOSS_SCORE_THRESHOLD;
     private boolean gameOverDispatched = false;
     private float density;
@@ -77,7 +82,17 @@ public class GameSurfaceView extends SurfaceView implements SurfaceHolder.Callba
     private float hudLineGap;
     private float hudTextBaseline;
     private float hudSecondLineBaseline;
+    private float hudThirdLineBaseline;
     private float hudPanelBottom;
+    private volatile OnlineScoreObserver onlineScoreObserver;
+    private volatile boolean onlineBattleActive = true;
+    private volatile boolean onlineLocalDead;
+    private volatile boolean pendingOnlineStartReset;
+    private volatile boolean pendingGameStateReset;
+    private volatile String onlineStatusText;
+    private volatile String opponentName = "Opponent";
+    private volatile int opponentScore;
+    private volatile boolean opponentAlive;
 
     public GameSurfaceView(Context context, GameDifficulty difficulty, Handler gameEventHandler) {
         super(context);
@@ -97,6 +112,40 @@ public class GameSurfaceView extends SurfaceView implements SurfaceHolder.Callba
         hudPaint.setTextSize(spToPx(HUD_TEXT_SIZE_SP));
         hudPaint.setFakeBoldText(true);
         overlayPaint.setColor(Color.argb(110, 0, 0, 0));
+        updateHudMetrics();
+    }
+
+    public void setOnlineScoreObserver(OnlineScoreObserver onlineScoreObserver) {
+        this.onlineScoreObserver = onlineScoreObserver;
+        onlineBattleActive = false;
+        onlineLocalDead = false;
+        updateHudMetrics();
+    }
+
+    public void setOnlineWaiting() {
+        onlineStatusText = "Online: waiting for opponent";
+        onlineBattleActive = false;
+        MusicManager.overBgm();
+        MusicManager.overBossBgm();
+        updateHudMetrics();
+    }
+
+    public void setOnlineStarted(String opponentName) {
+        this.opponentName = opponentName == null || opponentName.isEmpty() ? "Opponent" : opponentName;
+        opponentAlive = true;
+        onlineStatusText = null;
+        onlineBattleActive = true;
+        onlineLocalDead = false;
+        pendingOnlineStartReset = true;
+        startLoopIfPossible();
+        updateHudMetrics();
+    }
+
+    public void setOpponentState(String opponentName, int opponentScore, boolean opponentAlive) {
+        this.opponentName = opponentName == null || opponentName.isEmpty() ? "Opponent" : opponentName;
+        this.opponentScore = opponentScore;
+        this.opponentAlive = opponentAlive;
+        onlineStatusText = null;
         updateHudMetrics();
     }
 
@@ -129,7 +178,7 @@ public class GameSurfaceView extends SurfaceView implements SurfaceHolder.Callba
         Main.WINDOW_WIDTH = width;
         Main.WINDOW_HEIGHT = height;
         updateHudMetrics();
-        initializeGameState();
+        requestGameStateReset();
     }
 
     @Override
@@ -141,6 +190,9 @@ public class GameSurfaceView extends SurfaceView implements SurfaceHolder.Callba
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         if (heroAircraft == null) {
+            return true;
+        }
+        if (onlineScoreObserver != null && !onlineBattleActive) {
             return true;
         }
         int action = event.getActionMasked();
@@ -168,7 +220,7 @@ public class GameSurfaceView extends SurfaceView implements SurfaceHolder.Callba
             return;
         }
         if (heroAircraft == null) {
-            initializeGameState();
+            requestGameStateReset();
         }
         running = true;
         renderThread = new Thread(this, "aircraft-war-loop");
@@ -198,6 +250,7 @@ public class GameSurfaceView extends SurfaceView implements SurfaceHolder.Callba
         backgroundTop = 0;
         nextBossScore = BOSS_SCORE_THRESHOLD;
         gameOverDispatched = false;
+        onlineLocalDead = false;
 
         heroAircraft = HeroAircraft.getHeroAircraft();
         heroAircraft.revive();
@@ -206,11 +259,24 @@ public class GameSurfaceView extends SurfaceView implements SurfaceHolder.Callba
         if (heal > 0) {
             heroAircraft.decreaseHp(-heal);
         }
-        MusicManager.playBgm();
+        if (onlineScoreObserver == null || onlineBattleActive) {
+            MusicManager.playBgm();
+        }
     }
 
     private void updateGame() {
-        if (!surfaceReady || heroAircraft == null) {
+        if (!surfaceReady) {
+            return;
+        }
+        if (pendingOnlineStartReset || pendingGameStateReset || heroAircraft == null) {
+            pendingOnlineStartReset = false;
+            pendingGameStateReset = false;
+            initializeGameState();
+        }
+        if (heroAircraft == null || onlineScoreObserver != null && !onlineBattleActive) {
+            return;
+        }
+        if (onlineLocalDead) {
             return;
         }
         backgroundTop = (backgroundTop + 6) % Main.WINDOW_HEIGHT;
@@ -295,6 +361,7 @@ public class GameSurfaceView extends SurfaceView implements SurfaceHolder.Callba
                     heroBullet.vanish();
                     if (enemyAircraft.notValid()) {
                         score += 10;
+                        notifyScoreChanged();
                         MusicManager.playHitEnemyPlayer();
                     }
                     break;
@@ -392,7 +459,14 @@ public class GameSurfaceView extends SurfaceView implements SurfaceHolder.Callba
         canvas.drawRect(0, 0, Main.WINDOW_WIDTH, hudPanelBottom, overlayPaint);
         canvas.drawText("Mode: " + difficulty.getLabel(), hudPadding, hudTextBaseline, hudPaint);
         canvas.drawText("Score: " + score, hudPadding + dpToPx(180), hudTextBaseline, hudPaint);
-        canvas.drawText("HP: " + heroAircraft.getHp(), hudPadding, hudSecondLineBaseline, hudPaint);
+        String hpText = heroAircraft == null ? "--" : String.valueOf(heroAircraft.getHp());
+        canvas.drawText("HP: " + hpText, hudPadding, hudSecondLineBaseline, hudPaint);
+        if (onlineScoreObserver != null) {
+            String text = onlineStatusText != null
+                    ? onlineStatusText
+                    : opponentName + ": " + opponentScore + (opponentAlive ? "" : " (dead)");
+            canvas.drawText(text, hudPadding, hudThirdLineBaseline, hudPaint);
+        }
     }
 
     private void spawnBossEnemy() {
@@ -429,10 +503,17 @@ public class GameSurfaceView extends SurfaceView implements SurfaceHolder.Callba
             return;
         }
         gameOverDispatched = true;
-        running = false;
         MusicManager.overBgm();
         MusicManager.overBossBgm();
         MusicManager.playOverBgm();
+        if (onlineScoreObserver != null) {
+            onlineLocalDead = true;
+            onlineBattleActive = false;
+            onlineStatusText = "You are down. Waiting for opponent: " + opponentScore;
+            onlineScoreObserver.onHeroDead(score);
+        } else {
+            running = false;
+        }
         if (gameEventHandler == null) {
             return;
         }
@@ -458,7 +539,21 @@ public class GameSurfaceView extends SurfaceView implements SurfaceHolder.Callba
         float textHeight = fontMetrics.bottom - fontMetrics.top;
         hudTextBaseline = statusBarInsetTop + hudPadding - fontMetrics.top;
         hudSecondLineBaseline = hudTextBaseline + textHeight + hudLineGap;
-        hudPanelBottom = hudSecondLineBaseline + fontMetrics.bottom + hudPadding;
+        hudThirdLineBaseline = hudSecondLineBaseline + textHeight + hudLineGap;
+        float lastBaseline = onlineScoreObserver == null ? hudSecondLineBaseline : hudThirdLineBaseline;
+        hudPanelBottom = lastBaseline + fontMetrics.bottom + hudPadding;
+    }
+
+    private void requestGameStateReset() {
+        pendingGameStateReset = true;
+    }
+
+    private void notifyScoreChanged() {
+        OnlineScoreObserver observer = onlineScoreObserver;
+        if (observer == null || score <= 0) {
+            return;
+        }
+        observer.onScoreChanged(score);
     }
 
     private int resolveStatusBarInsetTop() {

@@ -18,6 +18,8 @@ public class DifficultyActivity extends AppCompatActivity {
         wireDifficultyButton(R.id.button_easy, GameDifficulty.EASY);
         wireDifficultyButton(R.id.button_normal, GameDifficulty.NORMAL);
         wireDifficultyButton(R.id.button_hard, GameDifficulty.HARD);
+        findViewById(R.id.button_online).setOnClickListener(v ->
+                startActivity(new Intent(this, OnlineConfigActivity.class)));
     }
 
     private void wireDifficultyButton(int buttonId, GameDifficulty difficulty) {
